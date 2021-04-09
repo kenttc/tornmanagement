@@ -1,0 +1,319 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <title>Torn flower company management</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.5.0/knockout-min.js"></script>
+    <script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/knockout.mapping/2.4.1/knockout.mapping.min.js"></script>
+    <style>
+        .strong {
+            font-weight: bold;
+            font-size: larger;
+        }
+
+        .column {
+            float: left;
+            width: 25%;
+            word-break: break-all;
+        }
+
+        .float-left {
+            float: left;
+            width: 50%;
+            padding: 5px;
+        }
+
+        /* Clear floats after the columns */
+        .row:after {
+            content: "";
+            display: table;
+            clear: both;
+            width: 60%;
+        }
+
+        .error {
+            display: block;
+            color: #B94A48;
+        }
+
+        body {
+            font-family: Verdana;
+        }
+
+        .box {
+            width: auto;
+            height: auto;
+            border: 2px solid #000;
+            margin: 0 auto 15px;
+            text-align: center;
+            padding: 20px;
+            font-weight: bold;
+            border-radius: 10px;
+        }
+
+        .box-search {
+            width: auto;
+            height: auto;
+            border: 2px solid #000;
+            margin: 0 auto 5px;
+            text-align: left;
+            padding: 5px;
+            font-weight: bold;
+            border-radius: 10px;
+        }
+
+        .box-left {
+            width: auto;
+            height: auto;
+            border: 2px solid #000;
+            margin: 0 auto 15px;
+            text-align: left;
+            padding: 20px;
+            font-weight: bold;
+            border-radius: 10px;
+        }
+
+        .info {
+            background-color: #7ac3ec;
+            border-color: rgb(28, 111, 219);
+        }
+
+        .error {
+            background-color: #EBB1B1;
+            border-color: #973939;
+            color: #973939;
+        }
+
+        .help-block {
+            font-size: x-small;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 data-bind="text:currentDateTime"></h1>
+    <div class="row box-search">
+        <div class="float-left">
+            <label for="apiKey">Torn api key</label>
+            <input id="apiKey" name="apiKey" data-bind="textInput:apiKey">
+            <span data-bind="visible:isShowErrorNeedKey" class="error">Please provide a torn api key</span>
+            <br>
+        </div>
+        <div class="float-left">
+            <label for="companyId">CompanyId</label>
+            <input id="companyId" name="companyId" data-bind="textInput:companyId">
+            <span class="help-block">Defaults to the company you're in if not provided</span>
+        </div>
+        <div class="float-left"><button data-bind="click:loadData">Load data</button></div>
+
+    </div>
+
+    <br />
+    <div class="info box">For future reference - bookmark this link to use without typing in the companyid and apikey
+        each time<br />
+        <a data-bind="attr: { href: linkToThisPage, title: linkToThisPage }, text:linkToThisPage" target="_blank"></a>
+    </div>
+    <div class="error box" data-bind="visible:isloadDataError">Unable to load data from company id and api key. Please
+        check</div>
+
+    <div data-bind="visible:!isNeedKey()" class="box-left">
+        <h2>Employees</h2>
+        <div id="foursquare-venues">
+            <div class="row strong" id="li-header">
+                <div class="column ">Employee</div>
+                <div class="column">Effectiveness</div>
+                <div class="column">Train or not</div>
+                <div class="column">Last online</div>
+            </div>
+            <div class="row" id="li-name" data-bind="foreach:sortedEmployeeEffectivenessDescList">
+                <div class="column"><span data-bind="text: $data.name"></span> [<span
+                        data-bind="text: $data.id"></span>]
+                </div>
+                <div class="column">[<span data-bind="text: $data.effectiveness"></span>]</div>
+                <div class="column"><span style="color:red" data-bind="visible:!$data.is_train">MIA</span>
+                    <span data-bind="visible: $data.is_train">Train</span>
+                </div>
+                <div class="column"><span data-bind="text: $data.last_online"></span></div>
+            </div>
+            <h2>Stock levels</h2>
+            <div id="stock">
+                <div class="row strong">
+                    <div class="column ">Stock and level</div>
+                    <div class="column">Just ordered</div>
+                    <div class="column">Daily sold</div>
+                    <div class="column">Place new order?</div>
+                </div>
+                <div class="row" id="li-name" data-bind="foreach:companyStockLevel">
+                    <div class="column"><span data-bind="text: $data.name"></span>[<span
+                            data-bind="text: $data.stock_level"></span>]</div>
+                    <div class="column">[<span data-bind="text: $data.on_order"></span>]</div>
+                    <div class="column"><span data-bind="text: $data.daily_sold"></span>
+                    </div>
+                    <div class="column"><span style="color:red"
+                            data-bind="visible:$data.is_order_new, text: $data.amount_to_order">MIA</span>
+                        <span data-bind="visible: !$data.is_order_new">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+</body>
+<script>
+    var ViewModel = function () {
+        var self = this;
+        self.venueList = ko.observableArray([]);
+        self.companyStockLevel = ko.observableArray([]);
+        self.currentDateTime = ko.observable(new Date());
+        self.isloadDataError = ko.observable(false);
+        const urlParams = new URLSearchParams(window.location.search);
+        const qs_apiKey = urlParams.get('apikey');
+        const qs_companyid = urlParams.get('companyid');
+
+        self.apiKey = ko.observable(qs_apiKey);
+        self.companyId = ko.observable(qs_companyid);
+        self.isShowErrorNeedKey = ko.observable(true);
+        self.isNeedKey = ko.computed(function () {
+            var apiKey = self.apiKey();
+            var isNeed = apiKey == '' || apiKey == null;
+            self.isShowErrorNeedKey(isNeed);
+            return isNeed;
+        })
+
+        self.isClearData = ko.computed(function () {
+            if (self.isNeedKey()) {
+                clearData();
+                return true;
+            }
+            return false;
+        });
+
+        function clearData() {
+            self.venueList([]);
+            self.companyStockLevel([]);
+        }
+
+        self.foursquareURL = ko.computed(function () {
+            return 'https://api.torn.com/company/' + self.companyId() + '?selections=employees,stock&key=' + self.apiKey();
+        });
+        self.linkToThisPage = ko.computed(function () {
+            var path = window.location.origin;
+            if (path.indexOf("?") > -1)
+                return path;
+            if (path == 'file://')
+                path = window.location.pathname;
+            if (path.indexOf("file:") > -1)
+                return path + "?companyid=" + self.companyId() + "&apikey=" + self.apiKey();
+
+            return path + "/$web/boss.html?companyid=" + self.companyId() + "&apikey=" + self.apiKey();
+        });
+        self.loadData = function () {
+
+            if (!self.isNeedKey()) {
+                $.getJSON(this.foursquareURL(), function (data) {
+                    clearData();
+                    self.currentDateTime(new Date());
+                    for (var item in data.company_employees) {
+                        //console.log(item, data.company_employees[item]);
+                        var dateLastSeen = new Date(data.company_employees[item].last_action.timestamp * 1000);
+                        var lastSeen = lastSeenInMins(new Date(), dateLastSeen);
+                        var timeDiff = timeDifference(new Date(), dateLastSeen);
+                        self.venueList.push({
+                            name: data.company_employees[item].name,
+                            id: item,
+                            effectiveness: data.company_employees[item].effectiveness.total,
+                            last_online: timeDiff,
+                            is_train: lastSeen < 1440,
+                            last_seen: lastSeen
+                        });
+                    }
+                    for (var item in data.company_stock) {
+                        var soldAmount = parseInt(data.company_stock[item].sold_amount);
+                        var currentStockLevel = parseInt(data.company_stock[item].in_stock);
+                        var currentOrder = parseInt(data.company_stock[item].on_order);
+                        var amount_to_order = 0;
+                        var estimatedStockLevelLastingDays = Math.floor(currentStockLevel / soldAmount);
+                        var isOrderNewStock = estimatedStockLevelLastingDays < 2;
+                        if (isOrderNewStock) {
+                            amount_to_order = (soldAmount * 10 / 100) * 4;
+                        }
+
+                        self.companyStockLevel.push({
+                            name: item,
+                            stock_level: currentStockLevel,
+                            on_order: currentOrder,
+                            daily_sold: soldAmount,
+                            place_new_order: amount_to_order,
+                            is_order_new: isOrderNewStock
+                        });
+                    }
+                }).done(function () {
+                    if (self.venueList().length == 0) {
+                        self.isloadDataError(true);
+                    }
+                })
+                    .fail(function () {
+                        console.log("running");
+                        self.isloadDataError(true);
+                    });
+            }
+        }
+
+        self.sortedEmployeeEffectivenessDescList = ko.computed(function () {
+            return self.venueList().sort(function (l, r) {
+                return parseInt(l.effectiveness) < parseInt(r.effectiveness) ? 1 : -1;
+            });
+        });
+    };
+
+    ko.applyBindings(new ViewModel());
+
+    function timeDifference(current, previous) {
+
+        var msPerMinute = 60 * 1000;
+        var msPerHour = msPerMinute * 60;
+        var msPerDay = msPerHour * 24;
+        var msPerMonth = msPerDay * 30;
+        var msPerYear = msPerDay * 365;
+
+        var elapsed = current - previous;
+
+        if (elapsed < msPerMinute) {
+            return Math.round(elapsed / 1000) + ' seconds ago';
+        }
+
+        else if (elapsed < msPerHour) {
+            return Math.round(elapsed / msPerMinute) + ' minutes ago';
+        }
+
+        else if (elapsed < msPerDay) {
+            return Math.round(elapsed / msPerHour) + ' hours ago';
+        }
+
+        else if (elapsed < msPerMonth) {
+            return 'approximately ' + Math.round(elapsed / msPerDay) + ' days ago';
+        }
+
+        else if (elapsed < msPerYear) {
+            return 'approximately ' + Math.round(elapsed / msPerMonth) + ' months ago';
+        }
+
+        else {
+            return 'approximately ' + Math.round(elapsed / msPerYear) + ' years ago';
+        }
+    }
+
+    function lastSeenInMins(current, previous) {
+        var msPerMinute = 60 * 1000;
+        var elapsed = current - previous;
+        return Math.round(elapsed / msPerMinute);
+    }
+</script>
+
+</html>

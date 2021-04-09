@@ -105,13 +105,7 @@
             <span data-bind="visible:isShowErrorNeedKey" class="error">Please provide a torn api key</span>
             <br>
         </div>
-        <div class="float-left">
-            <label for="companyId">CompanyId</label>
-            <input id="companyId" name="companyId" data-bind="textInput:companyId">
-            <span class="help-block">Defaults to the company you're in if not provided</span>
-        </div>
         <div class="float-left"><button data-bind="click:loadData">Load data</button></div>
-
     </div>
 
     <br />
@@ -239,7 +233,7 @@
                         var currentOrder = parseInt(data.company_stock[item].on_order);
                         var amount_to_order = 0;
                         var estimatedStockLevelLastingDays = Math.floor(currentStockLevel / soldAmount);
-                        var isOrderNewStock = estimatedStockLevelLastingDays <= 2;
+                        var isOrderNewStock = estimatedStockLevelLastingDays < 2;
                         if (isOrderNewStock) {
                             amount_to_order = (soldAmount * 10 / 100) * 4;
                         }
